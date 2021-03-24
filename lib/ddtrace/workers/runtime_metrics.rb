@@ -20,7 +20,7 @@ module Datadog
         :metrics
 
       def initialize(options = {})
-        @metrics = options.fetch(:metrics, Runtime::Metrics.new)
+        @metrics = options.fetch(:metrics) { Runtime::Metrics.new }
 
         # Workers::Async::Thread settings
         self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_STOP)
@@ -41,6 +41,11 @@ module Datadog
       def associate_with_span(*args)
         # Start the worker
         metrics.associate_with_span(*args).tap { perform }
+      end
+
+      def stop(*args)
+        @metrics.close
+        super
       end
 
       def_delegators \

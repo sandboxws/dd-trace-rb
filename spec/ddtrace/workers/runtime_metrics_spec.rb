@@ -6,7 +6,7 @@ require 'ddtrace/workers/runtime_metrics'
 RSpec.describe Datadog::Workers::RuntimeMetrics do
   subject(:worker) { described_class.new(options) }
 
-  let(:metrics) { instance_double(Datadog::Runtime::Metrics) }
+  let(:metrics) { instance_double(Datadog::Runtime::Metrics, close: nil) }
   let(:options) { { metrics: metrics, enabled: true } }
 
   before { allow(metrics).to receive(:flush) }
@@ -201,6 +201,21 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
       expect(worker.metrics).to have_received(:associate_with_span)
         .with(span)
       expect(worker).to have_received(:perform)
+    end
+  end
+
+  describe '#stop' do
+    subject(:stop) { worker.stop(args) }
+
+    let(:args) { %w[foo bar] }
+
+    it 'closes metrics and stops worker' do
+      allow(worker.metrics).to receive(:close)
+
+      stop
+
+      expect(worker.running?).to be(false)
+      expect(worker.metrics).to have_received(:close)
     end
   end
 
