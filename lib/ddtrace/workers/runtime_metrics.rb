@@ -43,9 +43,15 @@ module Datadog
         metrics.associate_with_span(*args).tap { perform }
       end
 
-      def stop(*args)
-        @metrics.close
-        super
+      # TODO: `close_metrics` is only needed because
+      # Datadog::Components directly manipulates the lifecycle of
+      # Runtime::Metrics.statsd instances.
+      # This should be avoided, as it prevents this class from
+      # ensuring correct resource decommission of its internal
+      # dependencies.
+      def stop(*args, close_metrics: true)
+        @metrics.close if close_metrics
+        super(*args)
       end
 
       def_delegators \

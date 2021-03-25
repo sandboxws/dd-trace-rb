@@ -205,17 +205,31 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
   end
 
   describe '#stop' do
-    subject(:stop) { worker.stop(args) }
+    subject(:stop) { worker.stop(*args, **kwargs) }
 
     let(:args) { %w[foo bar] }
+    let(:kwargs) { {} }
+
+    before do
+      allow(worker.metrics).to receive(:close)
+    end
 
     it 'closes metrics and stops worker' do
-      allow(worker.metrics).to receive(:close)
-
       stop
 
       expect(worker.running?).to be(false)
       expect(worker.metrics).to have_received(:close)
+    end
+
+    context 'with close_metrics: false' do
+      let(:kwargs) { { close_metrics: false } }
+
+      it 'does not close metrics, but stops worker' do
+        stop
+
+        expect(worker.running?).to be(false)
+        expect(worker.metrics).to_not have_received(:close)
+      end
     end
   end
 
