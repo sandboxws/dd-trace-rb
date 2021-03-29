@@ -138,8 +138,17 @@ module Datadog
           last_cpu_time_ns = (thread[THREAD_LAST_CPU_TIME_KEY] || current_cpu_time_ns)
           interval = current_cpu_time_ns - last_cpu_time_ns
 
+          if interval < 0
+            error_message = "Negative interval for cpu time on thread #{thread.inspect}. thread_last_cpu_time: #{thread[THREAD_LAST_CPU_TIME_KEY].inspect}, current_cpu_time_ns: #{current_cpu_time_ns.inspect}, last_cpu_time_set: #{thread[:last_cpu_time_set].inspect}, now: #{Time.now.utc.iso8601(9)}, last_cpu_time_set_pid: #{thread[:last_cpu_time_set_pid].inspect}, pid: #{Process.pid}. Backtrace: #{thread.backtrace}"
+            Datadog.logger.error(error_message)
+
+            File.write("/tmp/negative-interval-debug.txt", "#{error_message}\n", mode: "a")
+          end
+
           # Update CPU time for thread
           thread[THREAD_LAST_CPU_TIME_KEY] = current_cpu_time_ns
+          thread[:last_cpu_time_set] = Time.now.utc.iso8601(9)
+          thread[:last_cpu_time_set_pid] = Process.pid
 
           # Return interval
           interval
